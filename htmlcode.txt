@@ -7,7 +7,11 @@
 <body>
 
     <h1>Hello World!</h1>
-   <h2>HHow are you Dost</h2>  <p>This is my first paragraph on my first simple webpage.</p>
+<<<<<<< HEAD
+   <h2>HHow are you </h2>  <p>This is my first paragraph on my first simple webpage.</p>
+=======
+   <h2>HHow are you friend</h2>  <p>This is my first paragraph on my first simple webpage.</p>
+>>>>>>> c4d712d2b0cc7d3a576b499760a44409ea45d781
     <a href="https://www.w3schools.com">Visit W3Schools for more tutorials!</a>
 
 </body>
