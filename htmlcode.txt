@@ -10,10 +10,30 @@
 <<<<<<< HEAD
    <h2>HHow are you </h2>  <p>This is my first paragraph on my first simple webpage.</p>
 =======
-   <h2>HHow are you friend</h2> <h2>HHow are you Dost</h2>  <p>This is my first paragraph on my first simple webpage.</p>
+   <h2>HHow are you friend</h2> <h2>HHow are </h2>  <p>This is my first paragraph on my first simple webpage.</p>
 >>>>>>> c4d712d2b0cc7d3a576b499760a44409ea45d781
     <a href="https://www.w3schools.com">Visit W3Schools for more tutorials!</a>
 <h1>Added new code</h1>
+<<<<<<< HEAD
+=======
+
+Today: 14/2/2026 below comments used
+git init
+git config --global user.email "balu@gmail.com"
+git config --global user.name "balu"
+git remote add origin https://github.com/balakrishnat107-crypto/HTMLCodeDev.git
+git add .
+git commit -m "msg"
+git pull
+git push
+git checkout -b branchname( to main)
+git show
+git status
+
+-------------------------------------
+
+
+>>>>>>> dev
 
 </body>
 </html>
