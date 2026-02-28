@@ -1,39 +1,361 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>My First Webpage</title>
-</head>
-<body>
+<!-- StudentEntry.html
+     Classic SharePoint (Content Editor Web Part)
+     TL People Picker (independent) + EmpEmail-driven EmpId lookup + Save to StudentsList
+     + Fixed styling for People Picker to avoid overlap/wrapping
+-->
 
-    <h1>Hello World!</h1>
-<<<<<<< HEAD
-   <h2>HHow are you </h2>  <p>This is my first paragraph on my first simple webpage.</p>
-=======
-   <h2>HHow are you friend</h2> <h2>HHow are </h2>  <p>This is my first paragraph on my first simple webpage.</p>
->>>>>>> c4d712d2b0cc7d3a576b499760a44409ea45d781
-    <a href="https://www.w3schools.com">Visit W3Schools for more tutorials!</a>
-<h1>Added new code</h1>
-<<<<<<< HEAD
-=======
+<div class="sp-card">
+  <div class="sp-card__header">
+    <h2>Student Entry</h2>
+    <p class="sp-card__sub">Fill the details below and click Save.</p>
+  </div>
 
-Today: 14/2/2026 below comments used
-git init
-git config --global user.email "balu@gmail.com"
-git config --global user.name "balu"
-git remote add origin https://github.com/balakrishnat107-crypto/HTMLCodeDev.git
-git add .
-git commit -m "msg"
-git pull
-git push
-git checkout -b branchname( to main)
-git show
-git status
+  <div class="sp-form-row">
+    <label for="txtTitle">Title <span class="req">*</span></label>
+    <input type="text" id="txtTitle" class="sp-input" placeholder="Enter title here" />
+    <small id="valTitle" class="sp-help sp-help--error" style="display:none;">Title is required.</small>
+  </div>
 
--------------------------------------
+  <div class="sp-form-row">
+    <label>TL (People Picker)</label>
+    <div id="ppTL" class="sp-people"></div>
+    <small class="sp-help">Pick a TL. This won’t change the EmpEmail below.</small>
+  </div>
 
+  <div class="sp-form-row">
+    <label for="empEmail">EmpEmail</label>
+    <div class="sp-input-group">
+      <input type="text" id="empEmail" class="sp-input" placeholder="Type employee email (e.g., Sri@gmail.com)" />
+      <button id="btnResolve" class="sp-btn sp-btn--ghost" type="button" title="Resolve EmpID">Resolve</button>
+    </div>
+    <small class="sp-help">EmpID is fetched from MasterEmpDetails by this email.</small>
+  </div>
 
->>>>>>> dev
+  <div class="sp-form-row">
+    <label for="empId">EmpID <span class="muted">(Auto‑filled)</span></label>
+    <input type="text" id="empId" class="sp-input" readonly />
+  </div>
 
-</body>
-</html>
+  <div class="sp-actions">
+    <button id="btnSave" class="sp-btn sp-btn--primary" type="button">Save</button>
+    <button id="btnCancel" class="sp-btn sp-btn--secondary" type="button">Cancel</button>
+  </div>
+
+  <div id="msg" class="sp-msg" role="status" aria-live="polite"></div>
+</div>
+
+<!-- ====== Minimal, tasteful styling (no external CDN) ====== -->
+<style>
+  :root{
+    --c-bg:#ffffff;
+    --c-border:#e5e7eb;
+    --c-muted:#6b7280;
+    --c-text:#111827;
+    --c-primary:#2563eb;
+    --c-primary-600:#1d4ed8;
+    --c-error:#b91c1c;
+    --radius:10px;
+    --shadow:0 6px 20px rgba(0,0,0,.06);
+  }
+  .sp-card{
+    max-width:720px;margin:28px auto;background:var(--c-bg);
+    border:1px solid var(--c-border); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:20px 22px; font-family:Segoe UI,Arial,Helvetica,sans-serif; color:var(--c-text);
+  }
+  .sp-card__header{margin-bottom:6px;}
+  .sp-card__header h2{margin:0;font-weight:700;}
+  .sp-card__sub{margin:4px 0 0; color:var(--c-muted); font-size:13px;}
+  .sp-form-row{margin:14px 0;}
+  label{display:block;font-weight:600;margin-bottom:6px;}
+  .req{color:#c00;}
+  .muted{color:var(--c-muted);font-weight:400;}
+  .sp-input{width:100%;padding:10px 12px;border:1px solid var(--c-border);border-radius:6px;font-size:14px;outline:none;}
+  .sp-input:focus{border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+  .sp-input[readonly]{background:#f9fafb;color:#4b5563;}
+  .sp-input-group{display:flex;gap:8px;align-items:center;}
+  .sp-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:6px;border:1px solid transparent;cursor:pointer;font-weight:600;}
+  .sp-btn--primary{background:var(--c-primary);color:#fff;}
+  .sp-btn--primary:hover{background:var(--c-primary-600);}
+  .sp-btn--secondary{background:#f3f4f6;border-color:var(--c-border);color:#111827;}
+  .sp-btn--ghost{background:#f9fafb;border:1px solid var(--c-border);color:#111827;}
+  .sp-actions{display:flex;gap:10px;margin-top:16px;}
+  .sp-help{display:block;margin-top:6px;color:var(--c-muted);font-size:12.5px;}
+  .sp-help--error{color:var(--c-error);}
+  .sp-msg{margin-top:14px;font-size:13.5px;}
+  .sp-msg.ok{color:#065f46;}
+  .sp-msg.err{color:#b91c1c;}
+  .sp-people{min-height:44px; display:block;} /* give the row enough space */
+
+  /* ====== People Picker fixes (the magic) ======
+     SharePoint renders a <span id="ppTL_TopSpan" class="sp-peoplepicker-topLevel"> inside #ppTL.
+     The rules below make it a single-row, full-width control with no wrap/overlap. */
+  #ppTL_TopSpan.sp-peoplepicker-topLevel,
+  .sp-peoplepicker-topLevel{
+    width:100% !important;
+    display:flex;
+    align-items:center;
+    min-height:40px;
+    border:1px solid var(--c-border);
+    border-radius:6px;
+    padding:6px 8px;
+    box-sizing:border-box;
+    background:#fff;
+  }
+  /* Initial help text: one line, truncated */
+  .sp-peoplepicker-topLevel .sp-peoplepicker-initialHelpText{
+    color:var(--c-muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    line-height:26px;
+  }
+  /* Editor input sizing so it doesn't break to a new line */
+  .sp-peoplepicker-topLevel .sp-peoplepicker-editorInput{
+    min-width:120px;
+  }
+  /* Ensure resolved user chips wrap nicely inside the box */
+  .sp-peoplepicker-topLevel .sp-peoplepicker-resolveList{
+    display:flex; flex-wrap:wrap; gap:4px;
+  }
+</style>
+
+<!-- ====== Required classic SharePoint scripts (People Picker) ====== -->
+<script type="text/javascript" src="/_layouts/15/sp.runtime.js"></script>
+<script type="text/javascript" src="/_layouts/15/sp.js"></script>
+<script type="text/javascript" src="/_layouts/15/clienttemplates.js"></script>
+<script type="text/javascript" src="/_layouts/15/clientforms.js"></script>
+<script type="text/javascript" src="/_layouts/15/clientpeoplepicker.js"></script>
+<script type="text/javascript" src="/_layouts/15/autofill.js"></script>
+<script type="text/javascript">
+// Close dialog if opened in modal, otherwise go back to list view
+function CloseCustomDialogOrGoBack() {
+  if (window.frameElement && typeof window.frameElement.cancelPopUp === "function") {
+    window.frameElement.cancelPopUp(); // closes SP modal
+  } else {
+    // full page fallback: honor Source or send to list
+    var params = new URLSearchParams(window.location.search);
+    var target = params.get("Source") || "/Lists/StudentsList/AllItems.aspx";
+    window.location.href = target;
+  }
+}
+
+// Optional: handle Esc key like native forms
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    CloseCustomDialogOrGoBack();
+  }
+});
+</script>
+<script>
+(function () {
+  /********************* CONFIG — UPDATE THESE IF NEEDED *********************/
+  // Master (lookup) list
+  var MASTER_LIST_TITLE   = 'MasterEmpDetails'; // exact title
+  var MASTER_EMAIL_FIELD  = 'Title';            // email column internal name in master list
+  var MASTER_EMPID_FIELD  = 'EmpId';            // internal name in master list (confirmed)
+
+  // Target (save to) list
+  var STUDENTS_LIST_TITLE = 'StudentsList';     // exact title
+  var STUDENTS_TITLE_INT  = 'Title';            // internal name for Title
+  var STUDENTS_TL_INT     = 'TL';               // internal name of Person field; POST as TLId
+  var STUDENTS_EMAIL_INT  = 'EmpEmail';         // internal name for EmpEmail (text)
+  var STUDENTS_EMPID_INT  = 'EmpID';            // internal name for EmpID (Single line of text)
+  /***************************************************************************/
+
+  // ---------- Helpers ----------
+  function setMsg(text, type){ // type: 'ok'|'err'|undefined
+    var m = document.getElementById('msg');
+    m.className = 'sp-msg' + (type ? ' ' + type : '');
+    m.textContent = text || '';
+  }
+  function debounce(fn, ms){ var t; return function(){ clearTimeout(t); var a=arguments,c=this; t=setTimeout(function(){ fn.apply(c,a); }, ms); }; }
+  function getWebUrl() {
+    return (window._spPageContextInfo && _spPageContextInfo.webAbsoluteUrl) ? _spPageContextInfo.webAbsoluteUrl : location.origin;
+  }
+
+  // ---------- People Picker (independent) ----------
+  function initPeoplePicker() {
+    var schema = {
+      PrincipalAccountType: 'User',
+      SearchPrincipalSource: 15,
+      ResolvePrincipalSource: 15,
+      AllowMultipleValues: false,
+      MaximumEntitySuggestions: 50,
+      Width: '100%'
+    };
+    SPClientPeoplePicker_InitStandaloneControlWrapper('ppTL', null, schema);
+    // Note: We don't hook OnUserResolved; EmpEmail is manual only.
+  }
+  function getSelectedTLLogin() {
+    var picker = SPClientPeoplePicker.SPClientPeoplePickerDict['ppTL_TopSpan'];
+    if (!picker) return '';
+    var all = picker.GetAllUserInfo();
+    if (!all || !all.length) return '';
+    return all[0].Key || ''; // claims/UPN
+  }
+
+  // ---------- REST: EmpId lookup by email ----------
+  async function lookupEmpIdByEmail(emailRaw) {
+    var idInput = document.getElementById('empId');
+    var email = (emailRaw || '').trim();
+    if (!email) { idInput.value=''; return { found:false, value:null }; }
+
+    var listTitleLiteral = MASTER_LIST_TITLE.replace(/'/g, "''");
+    var filterEmail      = email.replace(/'/g, "''");
+
+    var url = getWebUrl()
+      + "/_api/web/lists/getbytitle('" + listTitleLiteral + "')/items"
+      + "?$select=Id," + MASTER_EMAIL_FIELD + "," + MASTER_EMPID_FIELD
+      + "&$filter=" + MASTER_EMAIL_FIELD + " eq '" + filterEmail + "'"
+      + "&$top=1";
+
+    try {
+      const resp = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json;odata=nometadata' },
+        credentials: 'same-origin'
+      });
+      if (!resp.ok) {
+        const t = await resp.text();
+        console.error('[Emp Lookup] HTTP ' + resp.status, t);
+        idInput.value = '';
+        setMsg('Could not fetch EmpID (HTTP ' + resp.status + ').', 'err');
+        return { found:false, value:null };
+      }
+      const data = await resp.json();
+      const items = data.value || [];
+      if (items.length > 0) {
+        var v = items[0][MASTER_EMPID_FIELD];
+        idInput.value = (v != null) ? String(v) : '';
+        setMsg(v == null ? 'EmpID is blank in master.' : 'EmpID resolved.', v == null ? 'err' : 'ok');
+        return { found: v != null, value: (v != null ? String(v) : null) };
+      } else {
+        idInput.value = '';
+        setMsg('Email not found in MasterEmpDetails.', 'err');
+        return { found:false, value:null };
+      }
+    } catch (e) {
+      console.error('[Emp Lookup] Exception', e);
+      idInput.value = '';
+      setMsg('Unexpected error while looking up EmpID.', 'err');
+      return { found:false, value:null };
+    }
+  }
+
+  // ---------- Save helpers ----------
+  async function getRequestDigest() {
+    var el = document.getElementById('__REQUESTDIGEST');
+    if (el && el.value) return el.value;
+    const resp = await fetch(getWebUrl() + "/_api/contextinfo", {
+      method: 'POST',
+      headers: { 'Accept': 'application/json;odata=nometadata' },
+      credentials: 'same-origin'
+    });
+    if (!resp.ok) throw new Error('contextinfo failed: ' + resp.status);
+    const data = await resp.json();
+    return data.FormDigestValue;
+  }
+  async function ensureUserId(loginName) {
+    if (!loginName) return null;
+    const digest = await getRequestDigest();
+    const resp = await fetch(getWebUrl() + "/_api/web/ensureuser", {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'Content-Type': 'application/json;odata=nometadata',
+        'X-RequestDigest': digest
+      },
+      body: JSON.stringify({ logonName: loginName }),
+      credentials: 'same-origin'
+    });
+    if (!resp.ok) throw new Error('ensureuser failed: ' + await resp.text());
+    const data = await resp.json();
+    return data.Id;
+  }
+  async function saveItem() {
+    setMsg('');
+    const title  = (document.getElementById('txtTitle').value || '').trim();
+    const email  = (document.getElementById('empEmail').value || '').trim();
+    let   empIdV = (document.getElementById('empId').value || '').trim();
+
+    // Validation
+    if (!title) {
+      document.getElementById('valTitle').style.display='block';
+      setMsg('Please fix validation errors.', 'err');
+      return;
+    }
+    document.getElementById('valTitle').style.display='none';
+
+    // If an email is present but EmpID is empty, resolve once before saving.
+    if (email && !empIdV) {
+      const res = await lookupEmpIdByEmail(email);
+      if (!res.found) { setMsg('EmpEmail not found in MasterEmpDetails. Please correct the email.', 'err'); return; }
+      empIdV = res.value || '';
+    }
+
+    // Build payload (EmpID is TEXT)
+    var payload = {};
+    payload[STUDENTS_TITLE_INT] = title;
+    if (email)  payload[STUDENTS_EMAIL_INT] = String(email);
+    if (empIdV) payload[STUDENTS_EMPID_INT] = String(empIdV);
+
+    // Optional TL person
+    const tlLogin = getSelectedTLLogin();
+    if (tlLogin) {
+      try { payload[STUDENTS_TL_INT + 'Id'] = await ensureUserId(tlLogin); }
+      catch(e){ setMsg('Could not resolve TL user. Please re-pick.', 'err'); return; }
+    }
+
+    // POST
+    try {
+      const digest = await getRequestDigest();
+      const url = getWebUrl() + "/_api/web/lists/getbytitle('" + STUDENTS_LIST_TITLE.replace(/'/g, "''") + "')/items";
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'Content-Type': 'application/json;odata=nometadata',
+          'X-RequestDigest': digest
+        },
+        body: JSON.stringify(payload),
+        credentials: 'same-origin'
+      });
+      if (!resp.ok) { setMsg('Save failed: HTTP ' + resp.status, 'err'); return; }
+      const data = await resp.json();
+      setMsg('Item created. ID: ' + (data && data.Id ? data.Id : '(unknown)'), 'ok');
+    } catch (e) {
+      console.error(e);
+      setMsg('Unexpected error while saving.', 'err');
+    }
+  }
+
+  // ---------- Wire up ----------
+  function boot() {
+    initPeoplePicker();
+
+    const emailInput = document.getElementById('empEmail');
+    emailInput.addEventListener('change', function(){ setMsg(''); lookupEmpIdByEmail(emailInput.value); });
+    emailInput.addEventListener('keyup', debounce(function(e){
+      setMsg('');
+      if (e.key === 'Enter') saveItem(); else lookupEmpIdByEmail(emailInput.value);
+    }, 400));
+    document.getElementById('btnResolve').addEventListener('click', function(){
+      setMsg('Resolving…'); lookupEmpIdByEmail(document.getElementById('empEmail').value);
+    });
+
+    document.getElementById('btnSave').addEventListener('click', saveItem);
+    document.getElementById('btnCancel').addEventListener('click', function(){ history.back(); });
+  }
+
+  if (window.SP && SP.SOD && SP.SOD.executeFunc) {
+    SP.SOD.executeFunc('sp.js', 'SP.ClientContext', function(){
+      SP.SOD.loadMultiple(['clienttemplates.js','clientforms.js','clientpeoplepicker.js','autofill.js'], boot);
+    });
+  } else {
+    document.addEventListener('DOMContentLoaded', boot);
+  }
+})();
+// In your form’s save success block:
+
+</script>
