@@ -1,3 +1,46 @@
+<script type="text/javascript">
+// Run after DOM is ready
+(function () {
+  var myPageUrl = "/SitePages/MyContentEditorPage.aspx"; // <-- your page
+  function wireUpNewItemLink() {
+    // The "new item" link in classic views usually contains "NewItem" or the new form URL
+    var link = document.querySelector("a[id$='NewItem']") 
+            || document.querySelector("a[href*='NewForm.aspx']");
+    if (!link) return;
+
+    // Open your page in a modal dialog (recommended for a form-like experience)
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.SP && SP.SOD) {
+        SP.SOD.execute('sp.ui.dialog.js', 'SP.UI.ModalDialog.showModalDialog', {
+          url: myPageUrl,
+          title: 'Add Student',
+          width: 900,
+          height: 650,
+          allowMaximize: true,
+          showClose: true
+        });
+      } else {
+        // Fallback: navigate
+        window.location.href = myPageUrl;
+      }
+    });
+
+    // Also replace the href in case someone opens in new tab
+    link.setAttribute('href', myPageUrl);
+  }
+
+  // Wait a tick for the list toolbar to render
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireUpNewItemLink);
+  } else {
+    wireUpNewItemLink();
+  }
+})();
+</script>
+
+
+
 <!-- StudentEntry.html
      Classic SharePoint (Content Editor Web Part)
      TL People Picker (independent) + EmpEmail-driven EmpId lookup + Save to StudentsList
